@@ -1,0 +1,61 @@
+[package]
+name = "eardeck"
+version = "0.1.0"
+edition = "2021"
+description = "AirPods and Beats companion for Windows"
+default-run = "eardeck"
+
+[features]
+probe = []
+
+[[bin]]
+name = "eardeck"
+path = "src/main.rs"
+
+# Bluetooth diagnostics. Not shipped: cargo build --release --features probe
+[[bin]]
+name = "probe"
+path = "src/bin/probe.rs"
+required-features = ["probe"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = ["tray-icon", "image-png", "custom-protocol"] }
+tauri-plugin-notification = "2"
+tauri-plugin-single-instance = "2"
+windows-collections = "0.2"
+windows-core = "0.61"
+windows-registry = "0.6"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies.windows]
+version = "0.61"
+features = [
+  "Devices_Bluetooth",
+  "Devices_Bluetooth_Advertisement",
+  "Devices_Enumeration",
+  "Foundation",
+  "Foundation_Collections",
+  "Media_Control",
+  "Storage_Streams",
+  "Win32_Devices_FunctionDiscovery",
+  "Win32_Foundation",
+  "Win32_Media_Audio",
+  "Win32_Media_Audio_Endpoints",
+  "Win32_Media_KernelStreaming",
+  "Win32_System_Com",
+  "Win32_System_Com_StructuredStorage",
+  "Win32_System_Variant",
+  "Win32_UI_Input_KeyboardAndMouse",
+  "Win32_UI_Shell_PropertiesSystem",
+]
+
+[profile.release]
+lto = true
+opt-level = "s"
+strip = true
+panic = "abort"
+codegen-units = 1

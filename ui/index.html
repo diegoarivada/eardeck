@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>EarDeck</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="pages" id="pages">
+  <main class="page" id="home">
+    <nav class="bar end">
+      <button class="icon" id="open-devices" aria-label="My Devices">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </nav>
+
+    <section class="hero">
+      <div id="art" class="art"></div>
+      <h1 id="name">Looking for AirPods</h1>
+      <p id="sub">Checking paired devices</p>
+    </section>
+
+    <div id="batteries" class="batteries"></div>
+
+    <button id="connect" class="pill">Connect</button>
+
+    <div class="group">
+      <button class="row action" id="output">
+        <span>Audio Output</span>
+        <em id="output-value">Not active</em>
+      </button>
+      <label class="row volume" id="volume-row">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.500 9.500H4Z"/></svg>
+        <input id="volume" type="range" min="0" max="100" aria-label="Volume">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.500v5h3.500L11 18.500v-13L6.500 9.500H3Z"/><path class="line" d="M14.500 9.500a3.500 3.500 0 0 1 0 5M17 7a7 7 0 0 1 0 10"/></svg>
+      </label>
+    </div>
+
+    <p id="error" class="error" hidden></p>
+
+    <div class="group">
+      <label class="row"><span>Automatic Pause</span><input type="checkbox" id="auto_pause"><i></i></label>
+      <label class="row"><span>Automatic Switching</span><input type="checkbox" id="auto_default"><i></i></label>
+      <label class="row"><span>Show on Connect</span><input type="checkbox" id="popup_on_connect"><i></i></label>
+      <label class="row"><span>Open at Login</span><input type="checkbox" id="autostart"><i></i></label>
+    </div>
+  </main>
+
+  <section class="page" id="devices">
+    <nav class="bar">
+      <button class="back" id="close-devices">
+        <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        Back
+      </button>
+    </nav>
+    <h2>My Devices</h2>
+    <div class="group" id="device-list"></div>
+    <div class="group">
+      <button class="row action blue" id="open-pair"><span>Connect New AirPods</span></button>
+    </div>
+    <p class="note">Your AirPods stay paired with your other devices too.</p>
+    <button class="quit" id="quit">Quit EarDeck</button>
+  </section>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="sheet" id="sheet" aria-label="Connect New AirPods">
+  <button class="close" id="close-pair" aria-label="Close">
+    <svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg>
+  </button>
+  <div id="sheet-art" class="art small"></div>
+  <h2 id="sheet-title">Connect New AirPods</h2>
+  <p id="sheet-text"></p>
+  <div id="found" class="group"></div>
+  <div class="spinner" id="spinner"><b></b>Looking nearby</div>
+  <button id="sheet-action" class="pill" hidden></button>
+  <button id="sheet-settings" class="linkish" hidden>Open Bluetooth Settings</button>
+</aside>
+
+<script src="app.js"></script>
+</body>
+</html>

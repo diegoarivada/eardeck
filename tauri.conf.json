@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "EarDeck",
+  "version": "0.1.0",
+  "identifier": "dev.diegoarivada.eardeck",
+  "build": {
+    "frontendDist": "ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [],
+    "security": {
+      "csp": "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; connect-src ipc: http://ipc.localhost; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/icon.ico", "icons/icon.png"],
+    "publisher": "Diego Rivada",
+    "shortDescription": "AirPods and Beats companion for Windows",
+    "windows": {
+      "webviewInstallMode": { "type": "downloadBootstrapper" },
+      "nsis": { "installMode": "currentUser" }
+    }
+  }
+}
