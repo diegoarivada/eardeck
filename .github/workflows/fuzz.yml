@@ -1,0 +1,28 @@
+name: Fuzz
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 12 * * 3"
+
+permissions:
+  contents: read
+
+jobs:
+  parser:
+    # The parser has no Windows dependencies, and libFuzzer is most reliable on Linux.
+    runs-on: ubuntu-latest
+    env:
+      SECONDS_TO_RUN: ${{ github.event_name == 'schedule' && 1800 || 120 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: rustup toolchain install nightly --profile minimal
+      - run: cargo +nightly install cargo-fuzz --locked
+      - run: cargo +nightly fuzz run parser -- -max_total_time=$SECONDS_TO_RUN
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: fuzz-crash
+          path: fuzz/artifacts/

@@ -3,6 +3,7 @@ name = "eardeck"
 version = "0.1.0"
 edition = "2021"
 description = "AirPods and Beats companion for Windows"
+license = "MIT"
 default-run = "eardeck"
 
 [features]
