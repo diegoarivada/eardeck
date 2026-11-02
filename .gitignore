@@ -1,4 +1,7 @@
 target/
 gen/
 node_modules/
+fuzz/target/
+fuzz/corpus/
+fuzz/artifacts/
 *.exe

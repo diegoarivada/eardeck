@@ -27,7 +27,7 @@ The main risk is **someone nearby**, because any Bluetooth device in range can b
 
 | Threat | Protection |
 | --- | --- |
-| Malformed Bluetooth packets | Written in Rust, packets must match an exact size and format, and the parser is tested against 200,000 random packets |
+| Malformed Bluetooth packets | Written in Rust, packets must match an exact size and format, and the parser is tested against 200,000 random packets and fuzzed on every change |
 | A device name built to run code in the popup | Names are escaped, and the content security policy blocks inline and remote scripts |
 | A fake device that tries to pair | Pairing only happens when you pick a device. Only AirPods and Beats names are accepted, and EarDeck refuses any device that asks for a PIN |
 | Fake broadcasts that change what EarDeck shows or pause your media | Broadcasts must match your model and be close by. Auto-pause only runs while your AirPods are connected and are the current output |
@@ -37,6 +37,22 @@ The main risk is **someone nearby**, because any Bluetooth device in range can b
 | Remote debugging through an environment variable | Cleared when the app starts |
 | A hand-edited settings file | Values are range checked when loaded |
 | A vulnerable dependency | `cargo audit` runs on every change and weekly, and Dependabot proposes updates |
+
+## Code analysis
+
+Every change runs these free tools automatically, and they run again on a weekly schedule.
+
+| Type | Tool | What it looks for |
+| --- | --- | --- |
+| Static | [CodeQL](https://codeql.github.com) | Security bugs in the Rust, JavaScript and workflow code |
+| Static | [Clippy](https://doc.rust-lang.org/clippy/) | Risky or incorrect Rust, and warnings fail the build |
+| Static | [cargo-audit](https://rustsec.org) | Dependencies with known vulnerabilities |
+| Static | [cargo-deny](https://embarkstudios.github.io/cargo-deny/) | Unapproved licenses and package sources |
+| Static | GitHub secret scanning | Passwords and keys, and it blocks them from being pushed |
+| Dynamic | [cargo-fuzz](https://rust-fuzz.github.io/book/) | Crashes from hostile Bluetooth packets, with memory error detection |
+| Dynamic | Unit tests | Random packets and a real AirPods packet |
+
+Fuzzing runs for 2 minutes on each change and 30 minutes each week. It only covers the Bluetooth parser, which is the part of the app that takes input from strangers. The audio, pairing and popup code are not fuzzed.
 
 ## Known limits
 

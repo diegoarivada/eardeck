@@ -10,6 +10,10 @@ updates:
         patterns:
           - "windows"
           - "windows-*"
+  - package-ecosystem: cargo
+    directory: /fuzz
+    schedule:
+      interval: weekly
   - package-ecosystem: github-actions
     directory: /
     schedule:
