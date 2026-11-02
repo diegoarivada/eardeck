@@ -25,8 +25,8 @@ serde_json = "1"
 tauri = { version = "2", features = ["tray-icon", "image-png", "custom-protocol"] }
 tauri-plugin-notification = "2"
 tauri-plugin-single-instance = "2"
-windows-collections = "0.3"
-windows-core = "0.62"
+windows-collections = "0.100"
+windows-core = "0.100"
 windows-registry = "0.100"
 
 [build-dependencies]
