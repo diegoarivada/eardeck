@@ -878,7 +878,7 @@ dependencies = [
  "tauri-plugin-notification",
  "tauri-plugin-single-instance",
  "windows 0.61.3",
- "windows-collections 0.2.0",
+ "windows-collections 0.3.2",
  "windows-core 0.61.2",
  "windows-registry",
 ]
@@ -1572,7 +1572,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.61.2",
+ "windows-core 0.62.2",
 ]
 
 [[package]]
