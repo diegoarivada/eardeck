@@ -53,7 +53,7 @@ pub fn start_scan(on_found: impl Fn(Found) + Send + Sync + Clone + 'static) -> w
     watcher.Updated(&TypedEventHandler::new(
         move |_: Ref<'_, DeviceWatcher>, update: Ref<'_, DeviceInformationUpdate>| {
             if let Some(update) = update.as_ref() {
-                let info = DeviceInformation::CreateFromIdAsync(&update.Id()?)?.get()?;
+                let info = DeviceInformation::CreateFromIdAsync(&update.Id()?)?.join()?;
                 report(&info, &on_found)?;
             }
             Ok(())
@@ -70,7 +70,7 @@ pub fn start_scan(on_found: impl Fn(Found) + Send + Sync + Clone + 'static) -> w
 pub fn pair(id: &str) -> Result<(), String> {
     let err = |e: windows::core::Error| e.message();
     let info = DeviceInformation::CreateFromIdAsync(&HSTRING::from(id))
-        .and_then(|op| op.get())
+        .and_then(|op| op.join())
         .map_err(err)?;
     if !is_apple_audio(&info.Name().map_err(err)?.to_string()) {
         return Err("EarDeck only pairs AirPods and Beats".into());
@@ -92,7 +92,7 @@ pub fn pair(id: &str) -> Result<(), String> {
     let token = custom.PairingRequested(&handler).map_err(err)?;
     let result = custom
         .PairAsync(DevicePairingKinds::ConfirmOnly)
-        .and_then(|op| op.get())
+        .and_then(|op| op.join())
         .and_then(|r| r.Status());
     let _ = custom.RemovePairingRequested(token);
     match result.map_err(err)? {

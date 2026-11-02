@@ -58,9 +58,9 @@ fn main() -> windows::core::Result<()> {
 
     println!("== paired bluetooth devices ==");
     let selector = BluetoothDevice::GetDeviceSelectorFromPairingState(true)?;
-    let devices = DeviceInformation::FindAllAsyncAqsFilter(&selector)?.get()?;
+    let devices = DeviceInformation::FindAllAsyncAqsFilter(&selector)?.join()?;
     for info in devices {
-        let dev = BluetoothDevice::FromIdAsync(&info.Id()?)?.get()?;
+        let dev = BluetoothDevice::FromIdAsync(&info.Id()?)?.join()?;
         println!(
             "{:<40} {:012X} {:?}",
             dev.Name()?.to_string(),
