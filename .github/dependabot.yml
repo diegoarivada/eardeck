@@ -4,6 +4,12 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    groups:
+      # These share types, so updating one at a time fails to compile.
+      windows:
+        patterns:
+          - "windows"
+          - "windows-*"
   - package-ecosystem: github-actions
     directory: /
     schedule:

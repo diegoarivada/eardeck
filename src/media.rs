@@ -7,13 +7,13 @@ use windows::Media::Control::{
 
 /// Returns true only if something was actually playing and got paused.
 pub fn pause_if_playing() -> windows::core::Result<bool> {
-    let session = Manager::RequestAsync()?.get()?.GetCurrentSession()?;
+    let session = Manager::RequestAsync()?.join()?.GetCurrentSession()?;
     if session.GetPlaybackInfo()?.PlaybackStatus()? != Status::Playing {
         return Ok(false);
     }
-    session.TryPauseAsync()?.get()
+    session.TryPauseAsync()?.join()
 }
 
 pub fn resume() -> windows::core::Result<bool> {
-    Manager::RequestAsync()?.get()?.GetCurrentSession()?.TryPlayAsync()?.get()
+    Manager::RequestAsync()?.join()?.GetCurrentSession()?.TryPlayAsync()?.join()
 }
