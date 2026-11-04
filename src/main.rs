@@ -13,7 +13,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use monitor::{App, Settings, Status};
+use monitor::{App, Pending, Settings, Status};
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::utils::config::WindowEffectsConfig;
@@ -57,7 +57,10 @@ fn place(win: &WebviewWindow, anchor: Option<Rect>) {
 
     let x = tray.map_or(right - w - gap, |(cx, _)| cx - w / 2.0);
     let x = x.clamp(left + gap, (right - w - gap).max(left + gap));
-    let _ = win.set_position(PhysicalPosition::new(x.round() as i32, (bottom - h - gap).round() as i32));
+    // A taskbar at the top of the screen puts the tray up there, so the popup hangs below it.
+    let near_top = tray.is_some_and(|(_, ty)| ty < top + (bottom - top) / 2.0);
+    let y = if near_top { top + gap } else { (bottom - h - gap).max(top + gap) };
+    let _ = win.set_position(PhysicalPosition::new(x.round() as i32, y.round() as i32));
 }
 
 /// The web view is the only heavy part of the app, so it exists only while the popup is open.
@@ -133,8 +136,13 @@ pub fn write_settings(app: &AppHandle, settings: &Settings) {
     if let Some(dir) = path.parent() {
         let _ = std::fs::create_dir_all(dir);
     }
+    // Write then rename, so a crash or power loss mid-save never leaves a half-written file
+    // that would reset every setting on the next start.
     if let Ok(json) = serde_json::to_vec_pretty(settings) {
-        let _ = std::fs::write(path, json);
+        let tmp = path.with_extension("json.tmp");
+        if std::fs::write(&tmp, json).is_ok() && std::fs::rename(&tmp, &path).is_err() {
+            let _ = std::fs::remove_file(&tmp);
+        }
     }
 }
 
@@ -203,13 +211,14 @@ fn stop_scan(state: &Arc<App>) {
 }
 
 #[tauri::command(async)]
-fn pair_device(state: State<'_, Arc<App>>, id: String, name: String) -> Result<(), String> {
+fn pair_device(state: State<'_, Arc<App>>, id: String) -> Result<(), String> {
     stop_scan(&state);
+    let known = state.status.lock().unwrap().devices.iter().map(|d| d.id.clone()).collect();
     state.pairing.store(true, Ordering::Relaxed);
     let result = pairing::pair(&id);
     state.pairing.store(false, Ordering::Relaxed);
-    result?;
-    *state.pending.lock().unwrap() = Some((name, Instant::now()));
+    let name = result?;
+    *state.pending.lock().unwrap() = Some(Pending { name, known, started: Instant::now() });
     Ok(())
 }
 
@@ -359,4 +368,23 @@ fn main() {
                 api.prevent_exit();
             }
         });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sanitize_caps_a_hand_edited_threshold() {
+        let s = sanitize(Settings { low_battery: 250, ..Settings::default() });
+        assert_eq!(s.low_battery, 100);
+    }
+
+    #[test]
+    fn unknown_or_missing_settings_fall_back_to_defaults() {
+        let s: Settings = serde_json::from_str(r#"{"auto_pause": false, "extra": 1}"#).unwrap();
+        assert!(!s.auto_pause);
+        assert!(s.auto_default);
+        assert_eq!(s.low_battery, 20);
+    }
 }

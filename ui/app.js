@@ -33,9 +33,15 @@ const EARBUDS = `<svg viewBox="0 0 120 120" aria-hidden="true">
 
 const CHECK = `<svg class="check" viewBox="0 0 24 24"><path d="M5 13l5 5 9-11"/></svg>`;
 
+/* Over-ear gear by name, when no broadcast has said which form it is. Whole words only, so
+   "Maxine's AirPods Pro" still gets earbuds. */
+const OVER_EAR_NAME = /\b(max|studio|solo)\b/i;
+
+let lowAt = 20;
+
 function battery(label, level, charging) {
   if (level === null || level === undefined) return "";
-  const cls = ["battery", charging && "charging", level <= 20 && !charging && "low"].filter(Boolean).join(" ");
+  const cls = ["battery", charging && "charging", level <= lowAt && !charging && "low"].filter(Boolean).join(" ");
   const tag = label ? `<small>${label}</small>` : "";
   return `<div class="${cls}">${tag}<span class="cell"><span data-level="${level}"></span></span>${level}%</div>`;
 }
@@ -55,6 +61,23 @@ function subtitle(s) {
 
 let dragging = false;
 let current = null;
+let toggling = false;
+
+/* Each slider move is a separate call, and they can finish out of order. Only one runs at a
+   time and the newest value goes next, so the last position always wins. */
+let volumeBusy = false;
+let volumeNext = null;
+async function pushVolume(percent) {
+  volumeNext = percent;
+  if (volumeBusy) return;
+  volumeBusy = true;
+  while (volumeNext !== null) {
+    const p = volumeNext;
+    volumeNext = null;
+    await run("set_volume", { percent: p }).catch(() => {});
+  }
+  volumeBusy = false;
+}
 
 function setSlider(value) {
   $("volume").value = value;
@@ -72,7 +95,7 @@ function renderDevices(s) {
 function render(s) {
   current = s;
   const r = s.reading;
-  const single = r ? r.form === "single" : /max|studio|solo/i.test(s.name);
+  const single = r ? r.form === "single" : OVER_EAR_NAME.test(s.name);
   $("art").innerHTML = single ? OVER_EAR : EARBUDS;
   $("name").textContent = s.found ? s.name : "No AirPods Yet";
   $("sub").textContent = subtitle(s);
@@ -85,14 +108,14 @@ function render(s) {
   const c = $("connect");
   c.textContent = s.connected ? "Disconnect" : "Connect";
   c.classList.toggle("quiet", s.connected);
-  c.disabled = !s.found;
+  c.disabled = !s.found || toggling;
 
   $("output").disabled = !s.connected;
   $("output").classList.toggle("current", s.is_default);
   $("output-value").textContent = !s.connected ? "Not active" : s.is_default ? "This Device" : "Switch";
 
   $("volume-row").classList.toggle("off", !s.connected);
-  if (!dragging && s.volume != null) setSlider(s.volume);
+  if (!dragging && !volumeBusy && s.volume != null) setSlider(s.volume);
   renderDevices(s);
 }
 
@@ -163,11 +186,11 @@ function addFound(device) {
 async function pair(device) {
   clearTimeout(scanTimer);
   $("found").innerHTML = "";
-  const art = /max|studio|solo/i.test(device.name) ? OVER_EAR : EARBUDS;
+  const art = OVER_EAR_NAME.test(device.name) ? OVER_EAR : EARBUDS;
   sheetState({ title: device.name, art, spinning: true });
   $("spinner").lastChild.textContent = "Connecting";
   try {
-    await invoke("pair_device", { id: device.id, name: device.name });
+    await invoke("pair_device", { id: device.id });
     sheetState({ title: device.name, text: "Connected. They're ready to use.", art, action: "Done" });
     sheetAction = closeSheet;
   } catch (e) {
@@ -205,6 +228,8 @@ $("sheet-action").addEventListener("click", () => sheetAction?.());
 async function init() {
   render(await invoke("get_status"));
   const settings = await invoke("get_settings");
+  lowAt = settings.low_battery;
+  render(current);
   for (const key of ["auto_pause", "auto_default", "popup_on_connect"]) {
     $(key).checked = settings[key];
     $(key).addEventListener("change", () => {
@@ -216,8 +241,15 @@ async function init() {
   $("autostart").addEventListener("change", () =>
     run("set_autostart", { enabled: $("autostart").checked }));
 
-  $("connect").addEventListener("click", () =>
-    run(current?.connected ? "disconnect" : "connect").catch(() => {}));
+  /* A second click while Windows is still connecting would undo the first one. */
+  $("connect").addEventListener("click", async () => {
+    if (toggling) return;
+    toggling = true;
+    $("connect").disabled = true;
+    await run(current?.connected ? "disconnect" : "connect").catch(() => {});
+    toggling = false;
+    render(current);
+  });
   $("output").addEventListener("click", () => {
     if (!current?.is_default) run("make_default").catch(() => {});
   });
@@ -234,10 +266,13 @@ async function init() {
 
   const slider = $("volume");
   slider.addEventListener("pointerdown", () => { dragging = true; });
-  slider.addEventListener("pointerup", () => { dragging = false; });
+  /* Without the cancel cases a drag that ends off the slider leaves it frozen for good. */
+  for (const end of ["pointerup", "pointercancel", "lostpointercapture"]) {
+    slider.addEventListener(end, () => { dragging = false; });
+  }
   slider.addEventListener("input", () => {
     setSlider(slider.value);
-    run("set_volume", { percent: Number(slider.value) }).catch(() => {});
+    pushVolume(Number(slider.value));
   });
 
   document.addEventListener("keydown", (e) => {
