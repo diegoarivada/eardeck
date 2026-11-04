@@ -1,5 +1,17 @@
 # Update Log
 
+## 0.1.2 (November 3, 2026)
+
+### Fixed
+
+- **Clicking the tray icon sometimes did nothing.** The popup is built hidden and only shown once it has painted. While Windows handled the click, especially from the hidden icons area by the clock, focus moved away, and EarDeck read that as "you clicked elsewhere" and closed the popup before it appeared. EarDeck now ignores that until the popup is on screen, then takes focus so clicking elsewhere still closes it.
+
+### Checked
+
+- Reproduced on Windows 11 with a real click on the tray icon: the popup was created and destroyed in about 370 ms without ever showing.
+- After the fix, the tray click opens the popup with focus every time, and clicking elsewhere closes it.
+- 16 unit tests pass and Clippy is clean.
+
 ## 0.1.1 (November 3, 2026)
 
 A bug fix release. Everything below was found by running unit tests, static analysis (Clippy, ESLint, cargo audit, cargo deny) and dynamic analysis (5 minutes of fuzzing, a live Bluetooth probe and running the installed app with real AirPods).

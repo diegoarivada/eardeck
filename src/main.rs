@@ -31,6 +31,8 @@ const AUTO_HIDE: Duration = Duration::from_secs(6);
 const REOPEN_GUARD: Duration = Duration::from_millis(250);
 
 static LAST_HIDE: Mutex<Option<Instant>> = Mutex::new(None);
+/// Whether the popup being built should take focus once it is shown.
+static WANT_FOCUS: AtomicBool = AtomicBool::new(false);
 
 fn popup(app: &AppHandle) -> Option<WebviewWindow> {
     app.get_webview_window("main")
@@ -67,6 +69,7 @@ fn place(win: &WebviewWindow, anchor: Option<Rect>) {
 /// Runs on its own thread because building a window from a UI callback deadlocks on Windows.
 fn open(app: &AppHandle, anchor: Option<Rect>, take_focus: bool) {
     let app = app.clone();
+    WANT_FOCUS.store(take_focus, Ordering::Relaxed);
     std::thread::spawn(move || {
         let acrylic = WindowEffectsConfig {
             effects: vec![WindowEffect::Acrylic],
@@ -154,6 +157,11 @@ fn endpoint(state: &Arc<App>) -> Result<String, String> {
 #[tauri::command]
 fn ui_ready(window: WebviewWindow) {
     let _ = window.show();
+    // Focus can move while the tray handles the click, so it is taken again here. Without it
+    // the popup would stay open with nothing to close it when you click elsewhere.
+    if WANT_FOCUS.load(Ordering::Relaxed) {
+        let _ = window.set_focus();
+    }
 }
 
 #[tauri::command]
@@ -289,7 +297,11 @@ fn main() {
                     // Windows can steal focus mid-pairing; the card has to survive that.
                     let busy = state.scan.lock().unwrap().is_some()
                         || state.pairing.load(Ordering::Relaxed);
-                    if !busy {
+                    // The popup is built hidden and only shown once the page has painted.
+                    // Windows moves focus around while the tray handles the click, and acting on
+                    // that blur destroyed the popup before it ever appeared.
+                    let shown = win.is_visible().unwrap_or(false);
+                    if !busy && shown {
                         *LAST_HIDE.lock().unwrap() = Some(Instant::now());
                         let _ = win.destroy();
                     }
