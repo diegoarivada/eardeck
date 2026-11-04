@@ -91,15 +91,18 @@ pub fn endpoints() -> windows::core::Result<Vec<Endpoint>> {
         let en = enumerator()?;
         let list = en.EnumAudioEndpoints(eRender, DEVICE_STATE(DEVICE_STATEMASK_ALL))?;
         let mut out = vec![];
+        // One endpoint in a bad state must not hide every other device, so errors skip it.
         for i in 0..list.GetCount()? {
             let Ok(dev) = list.Item(i) else { continue };
-            let id = take_pwstr(dev.GetId()?);
+            let Ok(raw_id) = dev.GetId() else { continue };
+            let id = take_pwstr(raw_id);
+            let Ok(state) = dev.GetState() else { continue };
             let name = dev
                 .OpenPropertyStore(STGM_READ)
                 .and_then(|s| s.GetValue(&PKEY_Device_FriendlyName))
                 .map(|v| v.to_string())
                 .unwrap_or_default();
-            let active = dev.GetState()? == DEVICE_STATE_ACTIVE;
+            let active = state == DEVICE_STATE_ACTIVE;
             let bluetooth = !bt_controls(&en, &dev).is_empty();
             out.push(Endpoint { id, name, active, bluetooth });
         }
@@ -131,13 +134,17 @@ pub fn find_headphones() -> Option<Endpoint> {
 }
 
 /// "Headphones (Sam's AirPods Max - Find My)" becomes "Sam's AirPods Max".
+/// Only the one closing parenthesis Windows adds is removed, so "Sam's AirPods (2)" survives.
 pub fn display_name(endpoint_name: &str) -> String {
     let inner = endpoint_name
         .split_once('(')
-        .map(|(_, rest)| rest.trim_end_matches(')'))
+        .map(|(_, rest)| rest.strip_suffix(')').unwrap_or(rest))
         .unwrap_or(endpoint_name);
-    inner.replace('\u{2019}', "'").trim_end_matches(" - Find My").trim().to_string()
+    let inner = inner.replace('\u{2019}', "'");
+    let inner = inner.trim();
+    inner.strip_suffix("- Find My").unwrap_or(inner).trim().to_string()
 }
+
 
 pub fn is_active(id: &str) -> bool {
     unsafe {
@@ -216,7 +223,7 @@ fn volume_control(id: &str) -> windows::core::Result<IAudioEndpointVolume> {
 pub fn get_volume(id: &str) -> Option<u8> {
     unsafe {
         let v = volume_control(id).ok()?.GetMasterVolumeLevelScalar().ok()?;
-        Some((v * 100.0).round() as u8)
+        Some((v.clamp(0.0, 1.0) * 100.0).round() as u8)
     }
 }
 
@@ -225,5 +232,19 @@ pub fn set_volume(id: &str, percent: u8) -> Result<(), String> {
         volume_control(id)
             .and_then(|v| v.SetMasterVolumeLevelScalar(percent.min(100) as f32 / 100.0, std::ptr::null()))
             .map_err(|e| e.message())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::display_name;
+
+    #[test]
+    fn display_name_strips_only_what_windows_adds() {
+        assert_eq!(display_name("Headphones (Sam\u{2019}s AirPods Max - Find My)"), "Sam's AirPods Max");
+        assert_eq!(display_name("Headphones (Nc AirPods  - Find My)"), "Nc AirPods");
+        assert_eq!(display_name("Headphones (Sam's AirPods (2))"), "Sam's AirPods (2)");
+        assert_eq!(display_name("Headphones (AirPods Pro)"), "AirPods Pro");
+        assert_eq!(display_name("AirPods"), "AirPods");
     }
 }

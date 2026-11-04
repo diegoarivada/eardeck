@@ -16,8 +16,9 @@ use crate::parser::{self, Reading};
 /// A stronger neighbor's AirPods should not win over yours because of one lucky packet.
 const RSSI_MARGIN: i16 = 8;
 const KEEP_BEST_SECS: u64 = 10;
-/// Anything weaker is across a room or a wall, so it can't be the pair in use here.
-const MIN_RSSI: i16 = -75;
+/// Anything weaker is across a room or a wall. Worn AirPods measured -66 to -77 dBm on a real
+/// PC, so the cutoff leaves room for that and still drops the -90 dBm traffic from far away.
+const MIN_RSSI: i16 = -85;
 const MANUFACTURER_SECTION: u8 = 0xFF;
 const AFTER_COMPANY_ID: i16 = 2;
 
@@ -35,18 +36,24 @@ pub struct Shared {
     pub device_name: Arc<Mutex<String>>,
 }
 
+/// Before any headphones are known nothing fits, so a stranger's AirPods never show up as yours.
 pub fn fits_device(device_name: &str, model: &str) -> bool {
     let name = device_name.to_lowercase();
-    if name.contains("airpods max") {
-        model.contains("Max")
+    if name.is_empty() {
+        false
+    } else if name.contains("airpods max") {
+        model.starts_with("AirPods Max")
     } else if name.contains("airpods pro") {
-        model.contains("AirPods Pro")
+        model.starts_with("AirPods Pro")
     } else if name.contains("airpods") {
-        model.contains("AirPods")
+        model.starts_with("AirPods") && !model.contains("Pro") && !model.contains("Max")
+    } else if name.contains("beats") {
+        model.to_lowercase().contains("beats")
     } else {
         true
     }
 }
+
 
 fn accept(shared: &Shared, reading: Reading, rssi: i16) {
     if !fits_device(&shared.device_name.lock().unwrap(), reading.model) {
@@ -116,5 +123,27 @@ impl Scanner {
         } else if !on && started {
             let _ = self.watcher.Stop();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::fits_device;
+
+    #[test]
+    fn matches_packets_to_the_right_family() {
+        assert!(fits_device("Sam's AirPods Pro", "AirPods Pro 2"));
+        assert!(!fits_device("Sam's AirPods Pro", "AirPods Max"));
+        assert!(fits_device("AirPods Max", "AirPods Max (USB-C)"));
+        assert!(fits_device("Sam's AirPods", "AirPods 4 (ANC)"));
+        assert!(!fits_device("Sam's AirPods", "AirPods Pro 2"));
+        assert!(!fits_device("Sam's AirPods", "AirPods Max"));
+        assert!(fits_device("Powerbeats Pro", "Powerbeats Pro"));
+        assert!(!fits_device("Beats Fit Pro", "AirPods Pro 2"));
+    }
+
+    #[test]
+    fn nothing_fits_before_a_device_is_known() {
+        assert!(!fits_device("", "AirPods Pro 2"));
     }
 }

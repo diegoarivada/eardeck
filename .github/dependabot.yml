@@ -10,6 +10,14 @@ updates:
         patterns:
           - "windows"
           - "windows-*"
+    ignore:
+      # windows-core and windows-collections must stay on the same release line as the
+      # windows crate. Dependabot once moved them to 0.100 while windows stayed on 0.62,
+      # which broke the build. Bump all three by hand when windows itself moves.
+      - dependency-name: "windows-core"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "windows-collections"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
   - package-ecosystem: cargo
     directory: /fuzz
     schedule:

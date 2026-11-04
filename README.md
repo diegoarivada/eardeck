@@ -16,6 +16,8 @@ It takes about a minute, and you don't need an admin account.
 
 You're done. Click the icon any time to open EarDeck.
 
+See what changed in each version in the [update log](CHANGELOG.md).
+
 ## Connect your AirPods
 
 **Already paired with this computer?** Click the EarDeck icon, then click **Connect**.

@@ -67,12 +67,15 @@ pub fn start_scan(on_found: impl Fn(Found) + Send + Sync + Clone + 'static) -> w
     Ok(watcher)
 }
 
-pub fn pair(id: &str) -> Result<(), String> {
+/// Returns the name Windows has for the device, so the caller never relies on a name the
+/// popup sent.
+pub fn pair(id: &str) -> Result<String, String> {
     let err = |e: windows::core::Error| e.message();
     let info = DeviceInformation::CreateFromIdAsync(&HSTRING::from(id))
         .and_then(|op| op.join())
         .map_err(err)?;
-    if !is_apple_audio(&info.Name().map_err(err)?.to_string()) {
+    let name = info.Name().map_err(err)?.to_string();
+    if !is_apple_audio(&name) {
         return Err("EarDeck only pairs AirPods and Beats".into());
     }
     let pairing = info.Pairing().map_err(err)?;
@@ -96,7 +99,7 @@ pub fn pair(id: &str) -> Result<(), String> {
         .and_then(|r| r.Status());
     let _ = custom.RemovePairingRequested(token);
     match result.map_err(err)? {
-        DevicePairingResultStatus::Paired | DevicePairingResultStatus::AlreadyPaired => Ok(()),
+        DevicePairingResultStatus::Paired | DevicePairingResultStatus::AlreadyPaired => Ok(name),
         DevicePairingResultStatus::AuthenticationTimeout | DevicePairingResultStatus::ConnectionRejected => {
             Err("They stopped responding. Put them back in pairing mode and try again.".into())
         }
