@@ -90,6 +90,8 @@ The popup only exists while it's open, so it uses more memory for those few seco
 
 EarDeck has no account, no ads and no tracking, and it never connects to the internet. Your settings stay on your computer.
 
+Read the full [privacy policy](https://diegoarivada.dev/eardeck-privacy.html) ([PRIVACY.md](PRIVACY.md)).
+
 See [SECURITY.md](SECURITY.md) for how it's protected and how to report a problem.
 
 ### Verify your download
