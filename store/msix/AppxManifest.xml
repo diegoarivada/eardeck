@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Template for the Microsoft Store MSIX package. build-msix.ps1 fills in the {{...}} values
+     from msix.config.json, which holds the identity Partner Center assigns to EarDeck. -->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap desktop rescap">
+
+  <Identity Name="{{IdentityName}}" Publisher="{{Publisher}}" Version="{{Version}}" ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>EarDeck</DisplayName>
+    <PublisherDisplayName>{{PublisherDisplayName}}</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <Description>See your AirPods battery, connect in one click, and pair new AirPods from the Windows tray.</Description>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="EarDeck" Executable="eardeck.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="EarDeck"
+        Description="AirPods and Beats companion for Windows"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
+      </uap:VisualElements>
+      <Extensions>
+        <!-- Open at Login. Off until the user turns it on in EarDeck. TaskId must match src/autostart.rs. -->
+        <desktop:Extension Category="windows.startupTask" Executable="eardeck.exe" EntryPoint="Windows.FullTrustApplication">
+          <desktop:StartupTask TaskId="EarDeckStartup" Enabled="false" DisplayName="EarDeck" />
+        </desktop:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+    <DeviceCapability Name="bluetooth" />
+  </Capabilities>
+</Package>
