@@ -35,6 +35,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies.windows]
 version = "0.62"
 features = [
+  "ApplicationModel",
   "Devices_Bluetooth",
   "Devices_Bluetooth_Advertisement",
   "Devices_Enumeration",

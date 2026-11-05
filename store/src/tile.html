@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>EarDeck tile</title>
+<style>
+  * { margin: 0; }
+  html, body { width: 100vw; height: 100vh; overflow: hidden; background: transparent; }
+  body { display: grid; place-items: center; }
+  /* Square tiles fill the frame. Wide tiles center the icon at the tile's height. */
+  img { height: 100vh; width: 100vh; }
+  .padded img { height: 70vh; width: 70vh; }
+</style>
+</head>
+<body>
+  <img src="icon.svg" alt="">
+<script src="tile.js"></script>
+</body>
+</html>
